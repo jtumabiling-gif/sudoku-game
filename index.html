@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Sudoku Master - Brain Boost</title>
+    <style>
+        /* Base / Blue & Grey Theme (Default) */
+        :root {
+            --bg: #f0f4f8; /* Slate/Blue grey bg */
+            --card: #ffffff;
+            --ink: #2d3748; /* Navy/Dark slate text */
+            --mut: #718096; /* Muted slate */
+            --line: #cbd5e1; /* Grid lines */
+            --grid-thick: #2d3748; /* 2px thick lines */
+            --p: #3182ce; /* Primary Blue */
+            --p2: #2b6cb0;
+            --pt: #ebf8ff;
+            --ac: #4299e1;
+            --sel: #bee3f8; /* Selected cell */
+            --rel: #edf2f7; /* Related row/col */
+            --same: #63b3ed; /* Duplicate highlight */
+            --bad: #fed7d7;
+            --badt: #c53030;
+            --cell: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            box-sizing: border-box;
+        }
+
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --bg: #1a202c; 
+            --card: #2d3748;
+            --ink: #e2e8f0;
+            --mut: #a0aec0;
+            --line: #4a5568;
+            --grid-thick: #e2e8f0;
+            --p: #63b3ed;
+            --p2: #90cdf4;
+            --pt: #2c5282;
+            --ac: #63b3ed;
+            --sel: #2b6cb0;
+            --rel: #2d3748;
+            --same: #4299e1;
+            --bad: #742a2a;
+            --badt: #feb2b2;
+            --cell: #2d3748;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Light Theme (Clean White/Green) */
+        [data-theme="light"] {
+            --bg: #f9fafb; 
+            --card: #ffffff;
+            --ink: #111827;
+            --mut: #6b7280;
+            --line: #e5e7eb;
+            --grid-thick: #111827;
+            --p: #10b981;
+            --p2: #059669;
+            --pt: #ecfdf5;
+            --ac: #34d399;
+            --sel: #d1fae5;
+            --rel: #f3f4f6;
+            --same: #6ee7b7;
+            --bad: #fca5a5;
+            --badt: #991b1b;
+            --cell: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { 
+            margin: 0; background: var(--bg); color: var(--ink); 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            min-height: 100dvh; transition: background-color 0.3s, color 0.3s;
+        }
+        
+        button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+        .hide { display: none !important; }
+        .w { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            font-weight: 600; padding: 12px 24px; border-radius: 9999px;
+            background: var(--card); border: 1px solid var(--line);
+            box-shadow: var(--shadow); transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--p); }
+        .btn:active { transform: scale(0.96); box-shadow: var(--shadow); }
+        .btn.p { background: var(--p); border-color: var(--p); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .btn.p:hover { background: var(--p2); border-color: var(--p2); }
+        .btn.sm { padding: 8px 16px; font-size: 0.9rem; }
+        :focus-visible { outline: 3px solid var(--ac); outline-offset: 2px; }
+
+        /* Navigation */
+        .nav {
+            position: sticky; top: 0; z-index: 10;
+            background: color-mix(in srgb, var(--bg) 85%, transparent);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+        }
+        .nav .w { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+        #levels, #why, #how { scroll-margin-top: 84px; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.02em; }
+        .nav-actions { display: flex; align-items: center; gap: 12px; }
+        #home-settings { display: none !important; }
+        .icon-btn { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--card); box-shadow: var(--shadow); }
+        .icon-btn:hover { color: var(--p); border-color: var(--p); }
+        
+        .links { display: flex; gap: 26px; }
+        .links a { color: var(--mut); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
+        .links a:hover { color: var(--ink); }
+        .links a:focus-visible { color: var(--p); }
+
+        .ft { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .fc { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 24px; box-shadow: var(--shadow); }
+        .fc h3 { margin: 0 0 6px; font-size: 1.2rem; }
+        .fc p { margin: 0; color: var(--mut); line-height: 1.5; }
+        
+        .st { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+        .sp { padding: 24px; border-radius: 22px; background: var(--bg); border: 1px solid var(--line); counter-increment: s; box-shadow: var(--shadow); }
+        .sp::before { content: counter(s); display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--p); color: #fff; font-weight: 800; margin-bottom: 12px; }
+        .sp p { margin: 0; line-height: 1.5; }
+
+        /* Text Size & Pause States */
+        .big .c { font-size: clamp(1.5rem, 7.6vw, 2.4rem); }
+        .big .pad button { font-size: 2.2rem; }
+        #board.pz { filter: blur(12px) grayscale(50%); pointer-events: none; }
+
+        /* Hero Section */
+        .sec { padding: 80px 0; }
+        .hero { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 60px; align-items: center; padding: 60px 0 80px; }
+        .tag { display: inline-block; background: var(--pt); color: var(--p2); font-weight: 700; font-size: 0.8rem; padding: 6px 14px; border-radius: 999px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px; }
+        h1 { font-size: clamp(2.5rem, 6vw, 4rem); line-height: 1.1; margin: 0 0 20px; letter-spacing: -0.04em; }
+        h1 em { font-style: normal; color: var(--p); }
+        .lead { font-size: 1.15rem; color: var(--mut); line-height: 1.6; max-width: 32em; margin-bottom: 30px; }
+        .cta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; }
+        
+        .facts { display: flex; gap: 32px; flex-wrap: wrap; background: var(--card); padding: 20px 30px; border-radius: 20px; border: 1px solid var(--line); box-shadow: var(--shadow); display: inline-flex;}
+        .facts b { display: block; font-size: 1.5rem; }
+        .facts span { font-size: 0.85rem; color: var(--mut); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* Mini Board */
+        @keyframes swing {
+            0% { transform: perspective(1000px) rotateY(-8deg) rotateX(5deg) translateY(0); }
+            100% { transform: perspective(1000px) rotateY(8deg) rotateX(5deg) translateY(-5px); }
+        }
+        
+        .phone {
+            background: var(--card); border-radius: 32px; padding: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); border: 1px solid var(--line); 
+            max-width: 360px; margin: 0 auto; width: 100%;
+            animation: swing 4s ease-in-out infinite alternate;
+            transition: transform 0.5s ease;
+        }
+        
+        .phone:hover { 
+            animation: none; /* Stops the swing when hovered */
+            transform: perspective(1000px) rotateY(0deg) rotateX(0deg); 
+        }
+        
+        .ph { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin: 0 8px 12px; color: var(--mut); }
+        #mini { display: grid; grid-template-columns: repeat(9, 1fr); border: 2px solid var(--grid-thick); border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
+        #mini div { display: grid; place-items: center; font-weight: 700; font-size: clamp(0.7rem, 2.6vw, 1rem); border: 0.5px solid var(--line); background: var(--cell); }
+        #mini div.f { background: var(--pt); animation: bl 2.6s infinite; }
+        #mini div.r3 { border-right: 2px solid var(--grid-thick); }
+        #mini div.b3 { border-bottom: 2px solid var(--grid-thick); }
+        @keyframes bl { 50% { background: var(--sel); } }
+
+        h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0 0 12px; letter-spacing: -0.03em; }
+        .sub { color: var(--mut); margin: 0 0 40px; font-size: 1.1rem; }
+        .band { background: var(--card); border-block: 1px solid var(--line); }
+        
+        /* Level Cards */
+        .lv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .lc {
+            text-align: left; padding: 24px; border-radius: 20px; background: var(--bg);
+            border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px;
+            transition: all 0.2s; cursor: pointer; box-shadow: var(--shadow);
+        }
+        .lc:hover { transform: translateY(-4px); border-color: var(--p); box-shadow: var(--shadow-lg); }
+        .lc b { font-size: 1.25rem; }
+        .lc span { color: var(--mut); font-size: 0.9rem; line-height: 1.4; }
+        .lc u { text-decoration: none; color: var(--p); font-weight: 700; margin-top: auto; padding-top: 12px; display: inline-block;}
+
+        /* Game UI */
+        .gh { display: flex; align-items: center; gap: 10px; padding: 16px 0; flex-wrap: wrap; }
+        .gh .sp1 { flex: 1; }
+        .pill { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 0.9rem; white-space: nowrap; box-shadow: var(--shadow); }
+        
+        .chips { display: flex; gap: 10px; overflow-x: auto; padding: 4px 0 16px; scrollbar-width: none; }
+        .chips::-webkit-scrollbar { display: none; }
+        .chips button {
+            white-space: nowrap; padding: 8px 18px; border-radius: 999px;
+            border: 1px solid var(--line); background: var(--card); font-weight: 600; font-size: 0.9rem;
+            color: var(--mut); transition: all 0.2s; cursor: pointer; box-shadow: var(--shadow);
+        }
+        .chips button:hover { border-color: var(--p); color: var(--p); }
+        .chips button.on { background: var(--p); color: #fff; border-color: var(--p); }
+        
+        .prog { height: 8px; background: var(--line); border-radius: 9px; overflow: hidden; margin-bottom: 20px; }
+        .prog i { display: block; height: 100%; width: 0; background: var(--p); transition: width 0.4s ease-out; }
+        
+        .gm { display: grid; grid-template-columns: min(calc(100dvh - 280px), 65%) 1fr; gap: 40px; align-items: start; }
+        
+        /* Game Board (Strict 1px/2px borders) */
+        #board {
+            display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); aspect-ratio: 1; width: 100%;
+            border: 2px solid var(--grid-thick); border-radius: 6px; background: var(--cell);
+            box-shadow: var(--shadow-lg); overflow: hidden;
+        }
+        .c { 
+            position: relative; display: grid; place-items: center; font-size: clamp(1.2rem, 5vw, 2rem); 
+            background: var(--cell); color: var(--ac); font-weight: 500; cursor: pointer; user-select: none; 
+            border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); box-sizing: border-box; 
+        }
+        .c:nth-child(9n) { border-right: none; }
+        .c:nth-child(n+73) { border-bottom: none; }
+        
+        /* 3x3 Grid Block Thick Lines */
+        .c:nth-child(3n):not(:nth-child(9n)) { border-right: 2px solid var(--grid-thick); }
+        .c:nth-child(n+19):nth-child(-n+27),
+        .c:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid var(--grid-thick); }
+
+        .c.g { color: var(--ink); font-weight: 700; }
+        .c.rel { background: var(--rel); }
+        .c.same { background: var(--same); color: #fff; font-weight: 700; }
+        .c.sel { background: var(--sel); box-shadow: inset 0 0 0 3px var(--p); z-index: 2; }
+        .c.bad { background: var(--bad); color: var(--badt); font-weight: 700; }
+        
+        .nt {
+            position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr);
+            font-size: clamp(0.55rem, 2vw, 0.75rem); color: var(--mut); text-align: center; line-height: 1; align-items: center; font-weight: 600;
+        }
+
+        /* Tools & Numpad */
+        .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 20px; }
+        .game-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 18px; }
+        .game-actions .btn { border-radius: 5px; background: var(--sel); border-color: transparent; color: var(--p2); }
+        .game-actions .btn.p { background: var(--p2); color: #fff; }
+        .theme-options { display: flex; justify-content: center; gap: 18px; margin: 28px 0; }
+        .theme-choice { width: 52px; height: 52px; border: 2px solid var(--line); border-radius: 50%; font-size: 1.4rem; }
+        .theme-choice[aria-pressed="true"] { border-color: var(--p); box-shadow: 0 0 0 3px var(--sel); }
+        .language-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 20px 0; max-height: min(60vh, 480px); overflow-y: auto; }
+        .language-choice { text-align: left; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+        .language-choice[aria-pressed="true"] { border-color: var(--p); color: var(--p); background: var(--pt); }
+        .language-choice small { display: block; color: var(--mut); margin-top: 3px; }
+        .tl { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: var(--mut); position: relative; }
+        .tl i { font-style: normal; width: 50px; height: 50px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); display: grid; place-items: center; font-size: 1.2rem; transition: all 0.2s; box-shadow: var(--shadow); }
+        .tl:hover i { border-color: var(--p); color: var(--p); transform: translateY(-2px); }
+        .tl.on i { background: var(--p); color: #fff; border-color: var(--p); }
+        .tl b { position: absolute; top: -5px; right: calc(50% - 32px); background: var(--badt); color: #fff; border-radius: 99px; font-size: 0.7rem; padding: 2px 6px; min-width: 20px; text-align: center; font-weight: 800; border: 2px solid var(--bg); }
+
+        .pad { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 8px; }
+        .pad button { padding: 12px 0 8px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 1.8rem; font-weight: 600; color: var(--ink); line-height: 1; box-shadow: var(--shadow); transition: all 0.15s; }
+        .pad button:hover { border-color: var(--p); color: var(--p); transform: translateY(-2px); }
+        .pad button:active { background: var(--pt); transform: scale(0.96); }
+        .pad button small { display: block; font-size: 0.7rem; color: var(--mut); margin-top: 4px; font-weight: 700; }
+        .pad button.dn { opacity: 0.3; pointer-events: none; }
+
+        /* Overlay & Toast */
+        .ov { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: grid; place-items: center; padding: 20px; z-index: 20; backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .ov.on { opacity: 1; pointer-events: auto; }
+        .ov > div { background: var(--card); border-radius: 28px; padding: 40px 30px; text-align: center; max-width: 380px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.9); transition: transform 0.3s; }
+        .ov.on > div { transform: scale(1); }
+        .ov h2 { font-size: 2.2rem; margin-bottom: 8px; }
+        .ov p { color: var(--mut); margin: 0 0 24px; font-size: 1.1rem; }
+        
+        #toast { position: fixed; left: 50%; top: 20px; transform: translate(-50%, -20px); background: var(--ink); color: var(--bg); padding: 12px 24px; border-radius: 999px; font-size: 0.95rem; font-weight: 600; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 30; }
+        #toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (max-width: 900px) {
+            .hero { grid-template-columns: 1fr; padding-top: 40px; text-align: center; gap: 40px; }
+            .hero p.lead { margin: 0 auto 30px; }
+            .cta, .facts { justify-content: center; width: 100%; }
+            .gm { grid-template-columns: 1fr; gap: 24px; }
+            #board { max-width: 500px; margin: 0 auto; }
+            .tools, .pad { max-width: 500px; margin-inline: auto; }
+        }
+        @media (max-width: 768px) { 
+            .lv { grid-template-columns: 1fr 1fr; } 
+            .nav .w { height: auto; min-height: 68px; flex-wrap: wrap; padding-top: 8px; }
+            .brand { gap: 6px; font-size: 1rem; }
+            .nav-actions { gap: 6px; }
+            .nav-actions .btn.sm { padding: 7px 12px; }
+            .nav-actions .icon-btn { width: 38px; height: 38px; }
+            .links { order: 3; display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 8px 0 4px; }
+            .links a { font-size: clamp(0.68rem, 2.7vw, 0.85rem); white-space: nowrap; }
+            .ft, .st { grid-template-columns: 1fr; }
+            .language-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 901px) {
+            .pad { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 12px; }
+            .pad button { padding: 20px 0 12px; font-size: 2.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Landing Page -->
+<div id="home">
+    <header class="nav">
+        <div class="w">
+            <div class="brand">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--p);">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="3" y1="15" x2="21" y2="15"></line>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                    <line x1="15" y1="3" x2="15" y2="21"></line>
+                </svg>
+                Sudoku Master
+            </div>
+            <nav class="links">
+                <a href="#levels">Levels</a>
+                <a href="#why">Why play</a>
+                <a href="#how">How to play</a>
+            </nav>
+            <div class="nav-actions">
+                <button class="icon-btn" id="theme-toggle" aria-label="Choose theme" title="Choose theme">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 1.7-4.3 1.5 1.5 0 0 1 1-2.7H19a2 2 0 0 0 2-2c0-5-4-9-9-9Z"></path><circle cx="7.5" cy="10" r="1"></circle><circle cx="11" cy="6.5" r="1"></circle><circle cx="16" cy="8" r="1"></circle></svg>
+                </button>
+                <button class="icon-btn" id="language-toggle" aria-label="Choose language" title="Choose language">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path></svg>
+                </button>
+                <button class="icon-btn" id="home-settings" aria-label="Settings" title="Settings">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button class="btn p sm" id="nav-play">Play</button>
+            </div>
+        </div>
+    </header>
+
+    <section class="w hero">
+        <div>
+            <span class="tag">BRAIN BOOST &middot; FREE</span>
+            <h1>The calm way to <br><em>train your brain.</em></h1>
+            <p class="lead">Classic Sudoku with a beautiful, responsive board, strict grid styling, and built-in voice assistance.</p>
+            <div class="cta">
+                <button class="btn p" id="hero-play">Start playing</button>
+            </div>
+            <div class="facts">
+                <div><b id="stat-played">0</b><span>Games</span></div>
+                <div><b id="stat-wins">0</b><span>Wins</span></div>
+                <div><b id="stat-best">--:--</b><span>Best</span></div>
+            </div>
+        </div>
+        <div class="phone" aria-hidden="true">
+            <div class="ph"><span>Preview</span><span></span></div>
+            <div id="mini"></div>
+        </div>
+    </section>
+
+    <section class="band sec" id="levels">
+        <div class="w">
+            <h2>Choose your level</h2>
+            <div class="lv" id="level-select">
+                <button class="lc" data-v="40" data-n="Beginner"><b>Beginner</b><span>40 clues. Gentle.</span><u>Play &rarr;</u></button>
+                <button class="lc" data-v="36" data-n="Easy"><b>Easy</b><span>36 clues. Warm-up.</span><u>Play &rarr;</u></button>
+                <button class="lc" data-v="30" data-n="Medium"><b>Medium</b><span>30 clues. Focus.</span><u>Play &rarr;</u></button>
+                <button class="lc" data-v="25" data-n="Hard"><b>Hard</b><span>25 clues. Workout.</span><u>Play &rarr;</u></button>
+            </div>
+        </div>
+    </section>
+
+    <section class="sec" id="why">
+        <div class="w">
+            <h2>Made to feel good</h2><p class="sub">Simple, helpful and never stressful.</p>
+            <div class="ft">
+                <div class="fc"><h3>Relax</h3><p>A quiet, uncluttered board that lets you focus on one square at a time.</p></div>
+                <div class="fc"><h3>Get support</h3><p>Pencil notes, three hints, undo, and instant red alerts for wrong numbers.</p></div>
+                <div class="fc"><h3>Grow</h3><p>Your wins and best time are saved, so every game is a new personal record.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="band sec" id="how">
+        <div class="w">
+            <h2>How to play</h2><p class="sub">Three rules. That's all.</p>
+            <div class="st">
+                <div class="sp"><p><b>Pick a square</b><br>Tap any empty square, then tap a number from 1 to 9.</p></div>
+                <div class="sp"><p><b>No repeats</b><br>Each row, column and 3x3 box must contain 1-9 exactly once.</p></div>
+                <div class="sp"><p><b>Stay safe</b><br>Three wrong numbers end the game. Fill the grid to win!</p></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Game View -->
+<div id="game" class="hide">
+    <div class="w">
+        <div class="gh">
+            <button class="btn sm" id="btn-home">&larr; Home</button>
+            <span class="sp1"></span>
+            <span class="pill" id="ui-mistakes">Mistakes 0/3</span>
+            <div style="display:flex; gap: 4px; align-items:center;">
+                <button class="pill" id="ui-time" style="border-top-right-radius:0; border-bottom-right-radius:0; border-right:0;">00:00</button>
+                <button class="pill" id="btn-pause" aria-label="Pause" style="border-top-left-radius:0; border-bottom-left-radius:0; padding: 8px 12px;">⏸</button>
+            </div>
+            <button class="icon-btn" id="game-theme-toggle" aria-label="Choose theme" title="Choose theme">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 1.7-4.3 1.5 1.5 0 0 1 1-2.7H19a2 2 0 0 0 2-2c0-5-4-9-9-9Z"></path><circle cx="7.5" cy="10" r="1"></circle><circle cx="11" cy="6.5" r="1"></circle><circle cx="16" cy="8" r="1"></circle></svg>
+            </button>
+            <button class="icon-btn" id="game-language-toggle" aria-label="Choose language" title="Choose language">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path></svg>
+            </button>
+            <button class="icon-btn" id="btn-settings" aria-label="Settings" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="chips" id="diff-chips">
+            <button data-v="40" data-n="Beginner">Beginner</button>
+            <button data-v="36" data-n="Easy">Easy</button>
+            <button data-v="30" data-n="Medium">Medium</button>
+            <button data-v="25" data-n="Hard">Hard</button>
+        </div>
+        
+        <div class="prog"><i id="ui-prog"></i></div>
+        
+        <div class="gm">
+            <div id="board" role="grid"></div>
+            <div>
+                <div class="game-actions">
+                    <button class="btn" id="btn-restart">Restart</button>
+                    <button class="btn p" id="btn-new-game">New Game</button>
+                </div>
+                <div class="tools">
+                    <button class="tl" id="btn-undo"><i>↺</i>Undo</button>
+                    <button class="tl" id="btn-erase"><i>⌫</i>Erase</button>
+                    <button class="tl" id="btn-note"><i>✎</i>Notes<b id="ui-note-badge">OFF</b></button>
+                    <button class="tl" id="btn-hint"><i>💡</i>Hint<b id="ui-hint-badge">3</b></button>
+                </div>
+                <div class="pad" id="numpad"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal & Toast -->
+<div class="ov" id="modal">
+    <div>
+        <div style="font-size:3.5rem; margin-bottom: 10px;" id="modal-icon"></div>
+        <h2 id="modal-title"></h2>
+        <p id="modal-desc"></p>
+        <button class="btn p" id="modal-action">Play again</button>
+        <button class="btn" id="modal-home" style="margin-top:10px;border:none;box-shadow:none;">Home</button>
+    </div>
+</div>
+
+<div class="ov" id="pause-modal">
+    <div>
+        <div style="font-size:3.5rem; margin-bottom: 10px;">⏸</div>
+        <h2>Game Paused</h2>
+        <p>Take a deep breath and relax.</p>
+        <button class="btn p" id="btn-resume" style="width: 100%;">Resume</button>
+    </div>
+</div>
+
+<div class="ov" id="settings-ov" style="z-index: 25;">
+    <div>
+        <h2>Settings</h2>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px; margin-bottom: 24px;">
+            <button class="btn" id="settings-theme-toggle" style="width:100%; justify-content:space-between;"><span>Theme</span> <b id="lbl-theme">Blue</b></button>
+            <button class="btn" id="btn-size" style="width:100%; justify-content:space-between;"><span>Text Size</span> <b id="lbl-size">Normal</b></button>
+            <button class="btn" id="voice-toggle" style="width:100%; justify-content:space-between;"><span>Voice Assist</span> <b id="lbl-voice">OFF</b></button>
+        </div>
+        <button class="btn p" id="btn-close-settings" style="width: 100%;">Close</button>
+    </div>
+</div>
+
+<div class="ov" id="theme-ov" style="z-index: 27;">
+    <div>
+        <h2>Choose a color</h2>
+        <div class="theme-options">
+            <button class="theme-choice" data-theme-choice="blue" aria-label="Blue theme" title="Blue" style="background:linear-gradient(135deg,#d9e7fa 50%,#315ca8 50%);">✓</button>
+            <button class="theme-choice" data-theme-choice="dark" aria-label="Dark theme" title="Dark" style="background:linear-gradient(135deg,#1a202c 50%,#63b3ed 50%);"></button>
+            <button class="theme-choice" data-theme-choice="light" aria-label="Green theme" title="Green" style="background:linear-gradient(135deg,#ecfdf5 50%,#10b981 50%);"></button>
+        </div>
+        <button class="btn p" id="btn-close-theme" style="width:100%;">Close</button>
+    </div>
+</div>
+
+<div class="ov" id="language-ov" style="z-index: 27;">
+    <div>
+        <h2>Languages</h2>
+        <div class="language-options">
+            <button class="language-choice" data-language="en" aria-pressed="true">English<small>English</small></button>
+            <button class="language-choice" data-language="es" aria-pressed="false">Español<small>Spanish</small></button>
+            <button class="language-choice" data-language="fr" aria-pressed="false">Français<small>French</small></button>
+            <button class="language-choice" data-language="de" aria-pressed="false">Deutsch<small>German</small></button>
+            <button class="language-choice" data-language="id" aria-pressed="false">Bahasa Indonesia<small>Indonesian</small></button>
+            <button class="language-choice" data-language="pt" aria-pressed="false">Português<small>Portuguese</small></button>
+            <button class="language-choice" data-language="ja" aria-pressed="false">日本語<small>Japanese</small></button>
+            <button class="language-choice" data-language="zh" aria-pressed="false">中文<small>Chinese</small></button>
+        </div>
+        <button class="btn p" id="btn-close-language" style="width:100%;">Close</button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/**
+ * MVC Architecture Sudoku
+ */
+
+// ==========================================
+// UTILITIES
+// ==========================================
+const Utils = {
+    $: s => document.querySelector(s),
+    $$: s => [...document.querySelectorAll(s)],
+    fmtTime: t => String(t / 60 | 0).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'),
+    rnd: () => Math.random(),
+    shuffle: arr => {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Utils.rnd() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    },
+    rw: i => i / 9 | 0,
+    cl: i => i % 9,
+    peer: (i, k) => Utils.rw(i) === Utils.rw(k) || Utils.cl(i) === Utils.cl(k) || 
+                   ((Utils.rw(i) / 3 | 0) === (Utils.rw(k) / 3 | 0) && (Utils.cl(i) / 3 | 0) === (Utils.cl(k) / 3 | 0))
+};
+
+// ==========================================
+// MODEL
+// ==========================================
+class SudokuModel {
+    constructor() {
+        this.reset();
+        this.stats = { played: 0, wins: 0, best: 0 };
+        this.loadStats();
+    }
+
+    reset() {
+        this.grid = Array(81).fill(0);
+        this.initialGrid = Array(81).fill(0);
+        this.sol = Array(81).fill(0);
+        this.given = Array(81).fill(false);
+        this.notes = Array.from({length: 81}, () => new Set());
+        this.history = [];
+        this.miss = 0;
+        this.hints = 3;
+        this.secs = 0;
+        this.over = true;
+        this.paused = false;
+        this.noteMode = false;
+        this.sel = -1;
+        this.difficulty = { v: 40, n: 'Beginner' };
+    }
+
+    loadStats() {
+        try { Object.assign(this.stats, JSON.parse(localStorage.getItem('sf-mvc') || '{}')); } catch(e) {}
+    }
+
+    saveStats() {
+        try { localStorage.setItem('sf-mvc', JSON.stringify(this.stats)); } catch(e) {}
+    }
+
+    generate(clues) {
+        this.reset();
+        this.difficulty.v = clues;
+        this.over = false;
+        
+        // Generate valid completed board
+        const ok = (g, i, v) => {
+            for (let k = 0; k < 81; k++) if (g[k] === v && k !== i && Utils.peer(i, k)) return false;
+            return true;
+        };
+        const fill = (g, i = 0) => {
+            if (i === 81) return true;
+            if (g[i]) return fill(g, i + 1);
+            for (const v of Utils.shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+                if (ok(g, i, v)) {
+                    g[i] = v;
+                    if (fill(g, i + 1)) return true;
+                    g[i] = 0;
+                }
+            }
+            return false;
+        };
+        fill(this.sol);
+        
+        // Remove numbers to match clues count
+        this.grid = [...this.sol];
+        Utils.shuffle([...Array(81).keys()]).slice(0, 81 - clues).forEach(i => this.grid[i] = 0);
+        this.initialGrid = [...this.grid];
+        this.given = this.grid.map(v => v !== 0);
+        
+        this.stats.played++;
+        this.saveStats();
+    }
+
+    snapshot() {
+        this.history.push({ g: [...this.grid], n: this.notes.map(s => new Set(s)) });
+        if (this.history.length > 50) this.history.shift();
+    }
+}
+
+// ==========================================
+// VIEW
+// ==========================================
+class SudokuView {
+    constructor() {
+        this.els = {
+            home: Utils.$('#home'),
+            game: Utils.$('#game'),
+            board: Utils.$('#board'),
+            pad: Utils.$('#numpad'),
+            mistakes: Utils.$('#ui-mistakes'),
+            time: Utils.$('#ui-time'),
+            prog: Utils.$('#ui-prog'),
+            noteBadge: Utils.$('#ui-note-badge'),
+            hintBadge: Utils.$('#ui-hint-badge'),
+            toast: Utils.$('#toast'),
+            modal: Utils.$('#modal'),
+            pauseModal: Utils.$('#pause-modal'),
+            settingsModal: Utils.$('#settings-ov'),
+            voiceBtnLbl: Utils.$('#lbl-voice'),
+            themeLbl: Utils.$('#lbl-theme'),
+            sizeLbl: Utils.$('#lbl-size')
+        };
+        this.themes = ['blue', 'dark', 'light'];
+        this.currentThemeIdx = 0;
+        this.voiceEnabled = false;
+        this.isBigText = false;
+        this.language = localStorage.getItem('sf-language') || 'en';
+        const savedTheme = localStorage.getItem('sf-theme');
+        this.setTheme(savedTheme && this.themes.includes(savedTheme) ? savedTheme : 'blue');
+        this.applyLanguage(this.language);
+    }
+
+    switchScreen(screen) {
+        this.els.home.classList.toggle('hide', screen !== 'home');
+        this.els.game.classList.toggle('hide', screen !== 'game');
+        window.scrollTo(0, 0);
+    }
+
+    cycleTheme() {
+        this.setTheme(this.themes[(this.currentThemeIdx + 1) % this.themes.length]);
+    }
+
+    setTheme(theme) {
+        this.currentThemeIdx = this.themes.indexOf(theme);
+        if (theme === 'blue') document.body.removeAttribute('data-theme');
+        else document.body.setAttribute('data-theme', theme);
+        
+        const themeName = theme === 'light' ? 'Green' : theme.charAt(0).toUpperCase() + theme.slice(1);
+        this.els.themeLbl.textContent = themeName;
+        Utils.$$('.theme-choice').forEach(button => {
+            const selected = button.dataset.themeChoice === theme;
+            button.setAttribute('aria-pressed', selected);
+            button.textContent = selected ? '✓' : '';
+        });
+        localStorage.setItem('sf-theme', theme);
+    }
+
+    toggleThemePicker(show) {
+        Utils.$('#theme-ov').classList.toggle('on', show);
+    }
+
+    toggleLanguagePicker(show) {
+        Utils.$('#language-ov').classList.toggle('on', show);
+    }
+
+    applyLanguage(language) {
+        const supportedLanguages = ['en', 'es', 'fr', 'de', 'id', 'pt', 'ja', 'zh'];
+        this.language = supportedLanguages.includes(language) ? language : 'en';
+        document.documentElement.lang = this.language;
+        localStorage.setItem('sf-language', this.language);
+        const translations = {
+            en: {
+                nav: ['Levels', 'Why play', 'How to play', 'Play'], hero: ['BRAIN BOOST · FREE', 'The calm way to <br><em>train your brain.</em>', 'Classic Sudoku with a beautiful, responsive board, strict grid styling, and built-in voice assistance.', 'Start playing'],
+                sections: ['Choose your level', 'Made to feel good', 'Simple, helpful and never stressful.', 'Preview', 'How to play', "Three rules. That's all."],
+                levels: ['Beginner', 'Easy', 'Medium', 'Hard'], levelDetails: ['40 clues. Gentle.', '36 clues. Warm-up.', '30 clues. Focus.', '25 clues. Workout.'], stats: ['Games', 'Wins', 'Best'],
+                features: [['Relax', 'A quiet, uncluttered board that lets you focus on one square at a time.'], ['Get support', 'Pencil notes, three hints, undo, and instant red alerts for wrong numbers.'], ['Grow', 'Your wins and best time are saved, so every game is a new personal record.']],
+                how: [['Pick a square', 'Tap any empty square, then tap a number from 1 to 9.'], ['No repeats', 'Each row, column and 3x3 box must contain 1-9 exactly once.'], ['Stay safe', 'Three wrong numbers end the game. Fill the grid to win!']],
+                game: ['Home', 'Restart', 'New Game', 'Undo', 'Erase', 'Notes', 'Hint', 'Mistakes', 'Settings', 'Theme', 'Text Size', 'Voice Assist', 'Close', 'Resume', 'Game Paused', 'Take a deep breath and relax.', 'Choose a color', 'Languages', 'Pause'],
+                notices: ['Part of puzzle', 'Cannot change given number', "Doesn't fit", 'Nothing to undo', 'No hints left']
+            },
+            es: {
+                nav: ['Niveles', 'Por qué jugar', 'Cómo jugar', 'Jugar'], hero: ['ENTRENA TU MENTE · GRATIS', 'La forma tranquila de <br><em>entrenar tu mente.</em>', 'Sudoku clásico con un tablero adaptable, diseño claro y asistencia de voz.', 'Empezar a jugar'],
+                sections: ['Elige tu nivel', 'Diseñado para disfrutar', 'Sencillo, útil y sin estrés.', 'Vista previa', 'Cómo jugar', 'Tres reglas. Eso es todo.'],
+                levels: ['Principiante', 'Fácil', 'Medio', 'Difícil'], levelDetails: ['40 pistas. Suave.', '36 pistas. Calentamiento.', '30 pistas. Concentración.', '25 pistas. Desafío.'], stats: ['Partidas', 'Victorias', 'Récord'],
+                features: [['Relájate', 'Un tablero sencillo y tranquilo para concentrarte en cada casilla.'], ['Recibe ayuda', 'Anotaciones, tres pistas, deshacer y avisos para números incorrectos.'], ['Mejora', 'Tus victorias y mejor tiempo se guardan para superar tu récord.']],
+                how: [['Elige una casilla', 'Toca una casilla vacía y luego un número del 1 al 9.'], ['Sin repetir', 'Cada fila, columna y bloque 3×3 debe contener del 1 al 9 una sola vez.'], ['Evita errores', 'Tres números incorrectos terminan la partida. ¡Completa el tablero para ganar!']],
+                game: ['Inicio', 'Reiniciar', 'Nuevo juego', 'Deshacer', 'Borrar', 'Notas', 'Pista', 'Errores', 'Ajustes', 'Tema', 'Tamaño del texto', 'Asistencia de voz', 'Cerrar', 'Continuar', 'Juego en pausa', 'Respira hondo y relájate.', 'Elige un color', 'Idiomas', 'Pausa'],
+                notices: ['Parte del puzzle', 'No puedes cambiar un número dado', 'No encaja', 'Nada que deshacer', 'No quedan pistas']
+            },
+            fr: {
+                nav: ['Niveaux', 'Pourquoi jouer', 'Comment jouer', 'Jouer'], hero: ['JEU DE LOGIQUE · GRATUIT', 'Le plaisir de <br><em>faire travailler votre esprit.</em>', 'Un Sudoku classique avec un plateau adaptatif, un design soigné et une aide vocale intégrée.', 'Commencer'],
+                sections: ['Choisissez un niveau', 'Pour jouer avec plaisir', 'Simple, utile et sans stress.', 'Aperçu', 'Comment jouer', 'Trois règles, rien de plus.'],
+                levels: ['Débutant', 'Facile', 'Moyen', 'Difficile'], levelDetails: ['40 cases. Tout en douceur.', '36 cases. Échauffement.', '30 cases. Concentration.', '25 cases. Défi.'], stats: ['Parties', 'Victoires', 'Record'],
+                features: [['Détendez-vous', 'Un plateau épuré pour vous concentrer sur une case à la fois.'], ['Faites-vous aider', 'Notes, trois indices, annulation et alertes immédiates en cas d’erreur.'], ['Progressez', 'Vos victoires et votre meilleur temps sont enregistrés.']],
+                how: [['Choisissez une case', 'Touchez une case vide, puis un chiffre de 1 à 9.'], ['Pas de doublons', 'Chaque ligne, colonne et bloc 3×3 contient les chiffres de 1 à 9 une seule fois.'], ['Évitez les erreurs', 'Trois erreurs terminent la partie. Remplissez la grille pour gagner !']],
+                game: ['Accueil', 'Recommencer', 'Nouvelle partie', 'Annuler', 'Effacer', 'Notes', 'Indice', 'Erreurs', 'Paramètres', 'Thème', 'Taille du texte', 'Assistance vocale', 'Fermer', 'Reprendre', 'Partie en pause', 'Respirez profondément et détendez-vous.', 'Choisir une couleur', 'Langues', 'Pause'],
+                notices: ['Indice du puzzle', 'Impossible de modifier un chiffre donné', 'Incorrect', 'Rien à annuler', 'Plus d’indices']
+            },
+            de: {
+                nav: ['Level', 'Warum spielen', 'Spielregeln', 'Spielen'], hero: ['DENKSPORT · KOSTENLOS', 'Entspannt das <br><em>Gehirn trainieren.</em>', 'Klassisches Sudoku mit anpassbarem Spielfeld, klarem Design und integrierter Sprachhilfe.', 'Jetzt spielen'],
+                sections: ['Wähle deinen Schwierigkeitsgrad', 'Mit Freude spielen', 'Einfach, hilfreich und stressfrei.', 'Vorschau', 'Spielregeln', 'Drei Regeln. Ganz einfach.'],
+                levels: ['Anfänger', 'Leicht', 'Mittel', 'Schwer'], levelDetails: ['40 Hinweise. Ganz entspannt.', '36 Hinweise. Zum Aufwärmen.', '30 Hinweise. Konzentration.', '25 Hinweise. Herausforderung.'], stats: ['Spiele', 'Siege', 'Bestzeit'],
+                features: [['Entspannen', 'Ein übersichtliches Spielfeld, damit du dich auf ein Feld konzentrieren kannst.'], ['Hilfe erhalten', 'Notizen, drei Hinweise, Rückgängig und sofortige Fehlerwarnungen.'], ['Besser werden', 'Siege und Bestzeit werden gespeichert.']],
+                how: [['Feld auswählen', 'Tippe ein leeres Feld und dann eine Zahl von 1 bis 9.'], ['Keine Wiederholungen', 'Jede Zeile, Spalte und jedes 3×3-Feld enthält jede Zahl von 1 bis 9 genau einmal.'], ['Fehler vermeiden', 'Drei Fehler beenden das Spiel. Fülle das Raster, um zu gewinnen!']],
+                game: ['Startseite', 'Neu starten', 'Neues Spiel', 'Rückgängig', 'Löschen', 'Notizen', 'Tipp', 'Fehler', 'Einstellungen', 'Design', 'Textgröße', 'Sprachhilfe', 'Schließen', 'Fortsetzen', 'Spiel pausiert', 'Tief durchatmen und entspannen.', 'Farbe wählen', 'Sprachen', 'Pause'],
+                notices: ['Vorgegebene Zahl', 'Vorgegebene Zahlen können nicht geändert werden', 'Passt nicht', 'Nichts rückgängig zu machen', 'Keine Tipps mehr']
+            },
+            id: {
+                nav: ['Level', 'Mengapa bermain', 'Cara bermain', 'Main'], hero: ['LATIH OTAK · GRATIS', 'Cara santai untuk <br><em>melatih otak.</em>', 'Sudoku klasik dengan papan responsif, tampilan rapi, dan bantuan suara.', 'Mulai bermain'],
+                sections: ['Pilih level', 'Nyaman dimainkan', 'Sederhana, membantu, dan bebas stres.', 'Pratinjau', 'Cara bermain', 'Hanya tiga aturan.'],
+                levels: ['Pemula', 'Mudah', 'Sedang', 'Sulit'], levelDetails: ['40 petunjuk. Santai.', '36 petunjuk. Pemanasan.', '30 petunjuk. Fokus.', '25 petunjuk. Tantangan.'], stats: ['Permainan', 'Menang', 'Terbaik'],
+                features: [['Santai', 'Papan sederhana agar kamu fokus pada satu kotak setiap saat.'], ['Dapatkan bantuan', 'Catatan, tiga petunjuk, urungkan, dan peringatan angka yang salah.'], ['Berkembang', 'Kemenangan dan waktu terbaikmu akan disimpan.']],
+                how: [['Pilih kotak', 'Ketuk kotak kosong, lalu pilih angka 1 sampai 9.'], ['Jangan berulang', 'Setiap baris, kolom, dan kotak 3×3 harus berisi angka 1–9 satu kali.'], ['Hindari kesalahan', 'Tiga kesalahan mengakhiri permainan. Isi papan untuk menang!']],
+                game: ['Beranda', 'Mulai ulang', 'Permainan baru', 'Urungkan', 'Hapus', 'Catatan', 'Petunjuk', 'Kesalahan', 'Pengaturan', 'Tema', 'Ukuran teks', 'Bantuan suara', 'Tutup', 'Lanjutkan', 'Permainan dijeda', 'Tarik napas dan rileks.', 'Pilih warna', 'Bahasa', 'Jeda'],
+                notices: ['Bagian dari teka-teki', 'Angka petunjuk tidak dapat diubah', 'Tidak cocok', 'Tidak ada yang bisa diurungkan', 'Petunjuk habis']
+            },
+            pt: {
+                nav: ['Níveis', 'Por que jogar', 'Como jogar', 'Jogar'], hero: ['DESAFIO MENTAL · GRÁTIS', 'Uma forma tranquila de <br><em>treinar a mente.</em>', 'Sudoku clássico com tabuleiro responsivo, visual limpo e assistência por voz.', 'Começar a jogar'],
+                sections: ['Escolha seu nível', 'Feito para relaxar', 'Simples, útil e sem estresse.', 'Prévia', 'Como jogar', 'São apenas três regras.'],
+                levels: ['Iniciante', 'Fácil', 'Médio', 'Difícil'], levelDetails: ['40 pistas. Tranquilo.', '36 pistas. Aquecimento.', '30 pistas. Foco.', '25 pistas. Desafio.'], stats: ['Partidas', 'Vitórias', 'Recorde'],
+                features: [['Relaxe', 'Um tabuleiro simples para você focar em uma casa por vez.'], ['Tenha ajuda', 'Anotações, três dicas, desfazer e alertas de números incorretos.'], ['Evolua', 'Suas vitórias e seu melhor tempo ficam salvos.']],
+                how: [['Escolha uma casa', 'Toque em uma casa vazia e depois em um número de 1 a 9.'], ['Sem repetições', 'Cada linha, coluna e bloco 3×3 deve conter os números de 1 a 9 uma única vez.'], ['Evite erros', 'Três erros encerram o jogo. Preencha a grade para vencer!']],
+                game: ['Início', 'Reiniciar', 'Novo jogo', 'Desfazer', 'Apagar', 'Notas', 'Dica', 'Erros', 'Configurações', 'Tema', 'Tamanho do texto', 'Assistente de voz', 'Fechar', 'Continuar', 'Jogo pausado', 'Respire fundo e relaxe.', 'Escolha uma cor', 'Idiomas', 'Pausar'],
+                notices: ['Parte do quebra-cabeça', 'Não é possível alterar um número dado', 'Não encaixa', 'Nada para desfazer', 'Sem dicas restantes']
+            },
+            ja: {
+                nav: ['レベル', 'ゲームの魅力', '遊び方', 'プレイ'], hero: ['脳トレ · 無料', '楽しく気軽に<br><em>脳を鍛えよう。</em>', '見やすい盤面と音声サポートを備えた、定番の数独です。', 'プレイ開始'],
+                sections: ['レベルを選択', '楽しく遊ぼう', 'シンプルで便利、ストレスフリー。', 'プレビュー', '遊び方', 'ルールは3つだけ。'],
+                levels: ['初級', '簡単', '中級', '難しい'], levelDetails: ['ヒント40個。やさしい。', 'ヒント36個。準備運動。', 'ヒント30個。集中。', 'ヒント25個。挑戦。'], stats: ['ゲーム', '勝利', 'ベスト'],
+                features: [['リラックス', 'すっきりした盤面で、一つずつ集中できます。'], ['サポート', 'メモ、3回のヒント、元に戻す機能、ミスの通知。'], ['上達', '勝利数とベストタイムを保存します。']],
+                how: [['マスを選ぶ', '空のマスをタップして、1から9の数字を選びます。'], ['重複なし', '各行、列、3×3ブロックに1から9を一度ずつ入れます。'], ['ミスに注意', '3回間違えると終了です。盤面を埋めてクリアしましょう！']],
+                game: ['ホーム', 'やり直す', '新しいゲーム', '元に戻す', '消去', 'メモ', 'ヒント', 'ミス', '設定', 'テーマ', '文字サイズ', '音声アシスト', '閉じる', '再開', '一時停止中', '深呼吸してリラックスしましょう。', '色を選択', '言語', '一時停止'],
+                notices: ['問題の一部です', '最初からある数字は変更できません', '不正解', '元に戻す操作はありません', 'ヒントがありません']
+            },
+            zh: {
+                nav: ['关卡', '游戏特色', '玩法说明', '开始'], hero: ['脑力训练 · 免费', '轻松愉快地<br><em>锻炼大脑。</em>', '经典数独，搭配清晰灵活的棋盘与语音辅助。', '开始游戏'],
+                sections: ['选择难度', '轻松畅玩', '简单、实用、没有压力。', '预览', '玩法说明', '只需遵守三条规则。'],
+                levels: ['入门', '简单', '中等', '困难'], levelDetails: ['40个提示，轻松上手。', '36个提示，热身练习。', '30个提示，专注挑战。', '25个提示，进阶挑战。'], stats: ['游戏', '胜利', '最佳'],
+                features: [['放松', '清晰简洁的棋盘，让你一次专注一个格子。'], ['获取帮助', '笔记、三次提示、撤销，以及错误数字提醒。'], ['不断进步', '自动保存胜利次数和最佳用时。']],
+                how: [['选择格子', '点击空格，然后选择1到9的数字。'], ['数字不重复', '每行、每列和每个3×3宫格中的数字1到9只能出现一次。'], ['避免错误', '错误三次后游戏结束。填满棋盘即可获胜！']],
+                game: ['主页', '重新开始', '新游戏', '撤销', '擦除', '笔记', '提示', '错误', '设置', '主题', '文字大小', '语音辅助', '关闭', '继续', '游戏已暂停', '深呼吸，放松一下。', '选择颜色', '语言', '暂停'],
+                notices: ['这是题目给定数字', '题目给定数字不可更改', '不正确', '没有可撤销的操作', '没有剩余提示']
+            }
+        };
+        const copy = translations[this.language];
+        this.translation = copy;
+        const text = (selector, value, preserveChildren = false) => {
+            const element = Utils.$(selector);
+            if (!element) return;
+            if (preserveChildren) {
+                const labelNode = [...element.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+                if (labelNode) labelNode.textContent = ` ${value}`;
+            } else {
+                element.textContent = value;
+            }
+        };
+        const links = Utils.$$('.links a');
+        copy.nav.slice(0, 3).forEach((label, i) => { if (links[i]) links[i].textContent = label; });
+        text('#nav-play', copy.nav[3]);
+        text('#hero-play', copy.hero[3]);
+        text('.tag', copy.hero[0]);
+        const headline = Utils.$('.hero h1');
+        if (headline) headline.innerHTML = copy.hero[1];
+        text('.hero .lead', copy.hero[2]);
+        text('#home .band h2', copy.sections[0]);
+        const levelNames = copy.levels;
+        Utils.$$('.lc').forEach((button, i) => {
+            const name = button.querySelector('b');
+            const detail = button.querySelector('span');
+            const play = button.querySelector('u');
+            if (name) name.textContent = levelNames[i];
+            if (detail) detail.textContent = copy.levelDetails[i];
+            if (play) play.textContent = `${copy.nav[3]} →`;
+        });
+        text('#why h2', copy.sections[1]);
+        text('#why .sub', copy.sections[2]);
+        text('.ph span', copy.sections[3]);
+        const features = Utils.$$('#why .fc');
+        copy.features.forEach((labels, i) => {
+            if (features[i]) {
+                features[i].querySelector('h3').textContent = labels[0];
+                features[i].querySelector('p').textContent = labels[1];
+            }
+        });
+        text('#how h2', copy.sections[4]);
+        text('#how .sub', copy.sections[5]);
+        copy.stats.forEach((label, i) => {
+            const stat = Utils.$$('.facts span')[i];
+            if (stat) stat.textContent = label;
+        });
+        const rules = Utils.$$('#how .sp');
+        copy.how.forEach((labels, i) => {
+            if (rules[i]) rules[i].querySelector('p').innerHTML = `<b>${labels[0]}</b><br>${labels[1]}`;
+        });
+        const labels = copy.game;
+        text('#btn-home', `← ${labels[0]}`);
+        text('#btn-restart', labels[1]);
+        text('#btn-new-game', labels[2]);
+        text('#btn-undo', labels[3], true);
+        text('#btn-erase', labels[4], true);
+        text('#btn-note', labels[5], true);
+        text('#btn-hint', labels[6], true);
+        text('#settings-ov h2', labels[8]);
+        Utils.$('#btn-settings').title = labels[8];
+        Utils.$('#btn-settings').setAttribute('aria-label', labels[8]);
+        text('#settings-theme-toggle span', labels[9]);
+        text('#btn-size span', labels[10]);
+        text('#voice-toggle span', labels[11]);
+        text('#btn-close-settings', labels[12]);
+        text('#pause-modal h2', labels[14]);
+        text('#pause-modal p', labels[15]);
+        text('#btn-resume', labels[13]);
+        Utils.$('#btn-pause').setAttribute('aria-label', labels[18]);
+        text('#theme-ov h2', labels[16]);
+        text('#btn-close-theme', labels[12]);
+        text('#language-ov h2', labels[17]);
+        text('#btn-close-language', labels[12]);
+        text('#modal-home', labels[0]);
+        Utils.$$('.language-choice').forEach(button => {
+            button.setAttribute('aria-pressed', button.dataset.language === this.language);
+            button.querySelector('small').textContent = ({
+                en: 'English', es: 'Spanish', fr: 'French', de: 'German', id: 'Indonesian', pt: 'Portuguese', ja: 'Japanese', zh: 'Chinese'
+            })[button.dataset.language];
+        });
+        Utils.$$('.chips button').forEach((button, i) => { button.textContent = levelNames[i]; });
+    }
+
+    toggleVoice() {
+        this.voiceEnabled = !this.voiceEnabled;
+        this.els.voiceBtnLbl.textContent = this.voiceEnabled ? 'ON' : 'OFF';
+        if(this.voiceEnabled) this.speak("Voice assistant activated.");
+        else window.speechSynthesis.cancel();
+    }
+
+    toggleSettings(show) {
+        this.els.settingsModal.classList.toggle('on', show);
+    }
+
+    speak(text) {
+        if (!this.voiceEnabled || !('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
+
+    showToast(msg) {
+        const englishNotices = ['Part of puzzle', 'Cannot change given number', "Doesn't fit", 'Nothing to undo', 'No hints left'];
+        const noticeIndex = englishNotices.indexOf(msg);
+        this.els.toast.textContent = noticeIndex >= 0 ? this.translation.notices[noticeIndex] : msg;
+        this.els.toast.classList.add('on');
+        clearTimeout(this.toastTm);
+        this.toastTm = setTimeout(() => this.els.toast.classList.remove('on'), 2500);
+    }
+
+    togglePause(isPaused) {
+        this.els.board.classList.toggle('pz', isPaused);
+        this.els.pauseModal.classList.toggle('on', isPaused);
+    }
+
+    toggleSize() {
+        this.isBigText = !this.isBigText;
+        document.body.classList.toggle('big', this.isBigText);
+        this.els.sizeLbl.textContent = this.isBigText ? 'Large' : 'Normal';
+    }
+
+    updateStats(stats) {
+        Utils.$('#stat-played').textContent = stats.played;
+        Utils.$('#stat-wins').textContent = stats.wins;
+        Utils.$('#stat-best').textContent = stats.best ? Utils.fmtTime(stats.best) : '--:--';
+    }
+
+    renderBoard(model, onCellClick) {
+        this.els.board.innerHTML = '';
+        const sv = model.sel >= 0 ? model.grid[model.sel] : 0;
+        
+        for (let i = 0; i < 81; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'c';
+            
+            if (model.given[i]) cell.classList.add('g');
+            
+            // Highlight Logic
+            if (model.sel >= 0) {
+                if (i === model.sel) cell.classList.add('sel');
+                // Duplicate Highlighting Feature across the board
+                else if (sv && model.grid[i] === sv) cell.classList.add('same');
+                else if (Utils.peer(i, model.sel)) cell.classList.add('rel');
+            }
+            
+            if (model.grid[i]) {
+                cell.textContent = model.grid[i];
+                if (!model.given[i] && model.grid[i] !== model.sol[i]) cell.classList.add('bad');
+            } else if (model.notes[i].size) {
+                const nt = document.createElement('div');
+                nt.className = 'nt';
+                for (let v = 1; v <= 9; v++) {
+                    const s = document.createElement('span');
+                    s.textContent = model.notes[i].has(v) ? v : '';
+                    nt.appendChild(s);
+                }
+                cell.appendChild(nt);
+            }
+            
+            cell.onclick = () => onCellClick(i);
+            this.els.board.appendChild(cell);
+        }
+    }
+
+    renderPad(model, onPadClick) {
+        this.els.pad.innerHTML = '';
+        for (let v = 1; v <= 9; v++) {
+            const left = 9 - model.grid.filter(x => x === v).length;
+            const btn = document.createElement('button');
+            btn.innerHTML = `${v}<small>${Math.max(left, 0)}</small>`;
+            if (left <= 0) btn.classList.add('dn');
+            btn.onclick = () => onPadClick(v);
+            this.els.pad.appendChild(btn);
+        }
+    }
+
+    updateUI(model) {
+        this.els.mistakes.textContent = `${this.translation.game[7]} ${model.miss}/3`;
+        this.els.time.textContent = Utils.fmtTime(model.secs);
+        this.els.prog.style.width = Math.round(model.grid.filter((v, i) => v && v === model.sol[i]).length / 81 * 100) + '%';
+        this.els.noteBadge.textContent = model.noteMode ? (this.language === 'en' ? 'ON' : '✓') : 'OFF';
+        Utils.$('#btn-note').classList.toggle('on', model.noteMode);
+        this.els.hintBadge.textContent = model.hints;
+        
+        Utils.$$('.chips button').forEach(b => {
+            b.classList.toggle('on', +b.dataset.v === model.difficulty.v);
+        });
+    }
+
+    showGameOver(win, time, mistakes) {
+        Utils.$('#modal-icon').textContent = win ? '🎉' : '💔';
+        const result = {
+            en: ['Puzzle solved!', 'Game over', 'Time', 'Mistakes', 'Three mistakes. Try again!', 'Play again', 'Try again'],
+            es: ['¡Sudoku resuelto!', 'Fin del juego', 'Tiempo', 'Errores', 'Tres errores. ¡Inténtalo de nuevo!', 'Jugar otra vez', 'Intentar de nuevo'],
+            fr: ['Grille résolue !', 'Fin de la partie', 'Temps', 'Erreurs', 'Trois erreurs. Réessayez !', 'Rejouer', 'Réessayer'],
+            de: ['Sudoku gelöst!', 'Spiel beendet', 'Zeit', 'Fehler', 'Drei Fehler. Versuche es erneut!', 'Nochmal spielen', 'Erneut versuchen'],
+            id: ['Sudoku selesai!', 'Permainan berakhir', 'Waktu', 'Kesalahan', 'Tiga kesalahan. Coba lagi!', 'Main lagi', 'Coba lagi'],
+            pt: ['Sudoku resolvido!', 'Fim de jogo', 'Tempo', 'Erros', 'Três erros. Tente novamente!', 'Jogar novamente', 'Tentar novamente'],
+            ja: ['数独クリア！', 'ゲーム終了', '時間', 'ミス', '3回間違えました。もう一度！', 'もう一度プレイ', '再挑戦'],
+            zh: ['数独完成！', '游戏结束', '用时', '错误', '错误三次，请再试一次！', '再玩一次', '重试']
+        }[this.language];
+        Utils.$('#modal-title').textContent = win ? result[0] : result[1];
+        Utils.$('#modal-desc').textContent = win ? `${result[2]}: ${time} • ${result[3]}: ${mistakes}` : result[4];
+        Utils.$('#modal-action').textContent = win ? result[5] : result[6];
+        this.els.modal.classList.add('on');
+    }
+}
+
+// ==========================================
+// CONTROLLER
+// ==========================================
+class SudokuController {
+    constructor(model, view) {
+        this.model = model;
+        this.view = view;
+        this.timer = null;
+        this.bindEvents();
+        this.view.updateStats(this.model.stats);
+        
+        // Draw Mini Board for landing page
+        this.drawMini();
+    }
+
+    bindEvents() {
+        // Navigation & Theme
+        Utils.$('#theme-toggle').onclick = () => this.view.toggleThemePicker(true);
+        Utils.$('#game-theme-toggle').onclick = () => this.view.toggleThemePicker(true);
+        Utils.$('#settings-theme-toggle').onclick = () => this.view.toggleThemePicker(true);
+        Utils.$('#language-toggle').onclick = () => this.view.toggleLanguagePicker(true);
+        Utils.$('#game-language-toggle').onclick = () => this.view.toggleLanguagePicker(true);
+        Utils.$$('.theme-choice').forEach(button => button.onclick = () => this.view.setTheme(button.dataset.themeChoice));
+        Utils.$$('.language-choice').forEach(button => button.onclick = () => this.view.applyLanguage(button.dataset.language));
+        Utils.$('#btn-close-theme').onclick = () => this.view.toggleThemePicker(false);
+        Utils.$('#btn-close-language').onclick = () => this.view.toggleLanguagePicker(false);
+        Utils.$('#theme-ov').onclick = e => { if (e.target === e.currentTarget) this.view.toggleThemePicker(false); };
+        Utils.$('#language-ov').onclick = e => { if (e.target === e.currentTarget) this.view.toggleLanguagePicker(false); };
+        Utils.$('#voice-toggle').onclick = () => this.view.toggleVoice();
+        
+        // Settings Modal
+        const toggleSettings = () => {
+            this.view.toggleSettings(!this.view.els.settingsModal.classList.contains('on'));
+        };
+        Utils.$('#btn-settings').onclick = toggleSettings;
+        Utils.$('#btn-close-settings').onclick = () => {
+            this.view.toggleSettings(false);
+        };
+        this.view.els.settingsModal.onclick = e => {
+            if (e.target === e.currentTarget) this.view.toggleSettings(false);
+        };
+        
+        const startFn = (v) => this.startGame(v);
+        Utils.$('#nav-play').onclick = () => startFn(40);
+        Utils.$('#hero-play').onclick = () => startFn(40);
+        Utils.$$('.lc').forEach(b => b.onclick = () => startFn(+b.dataset.v));
+        Utils.$$('#diff-chips button').forEach(b => b.onclick = () => startFn(+b.dataset.v));
+        
+        Utils.$('#btn-home').onclick = () => this.goHome();
+        Utils.$('#modal-home').onclick = () => this.goHome();
+        Utils.$('#modal-action').onclick = () => this.startGame(this.model.difficulty.v);
+        
+        Utils.$('#btn-pause').onclick = () => this.togglePause();
+        Utils.$('#btn-resume').onclick = () => this.togglePause();
+        Utils.$('#btn-size').onclick = () => this.view.toggleSize();
+        Utils.$('#btn-restart').onclick = () => this.restartGame();
+        Utils.$('#btn-new-game').onclick = () => this.startGame(this.model.difficulty.v);
+        
+        // Game Tools
+        Utils.$('#btn-undo').onclick = () => this.undo();
+        Utils.$('#btn-erase').onclick = () => this.erase();
+        Utils.$('#btn-note').onclick = () => { this.model.noteMode = !this.model.noteMode; this.refresh(); };
+        Utils.$('#btn-hint').onclick = () => this.useHint();
+        
+        // Keyboard input
+        document.addEventListener('keydown', e => {
+            if (this.model.over || this.model.paused || this.view.els.game.classList.contains('hide')) return;
+            if (e.key >= '1' && e.key <= '9') this.inputNumber(+e.key);
+            else if (e.key === 'Backspace' || e.key === 'Delete') this.erase();
+            else if (this.model.sel >= 0 && e.key.startsWith('Arrow')) {
+                e.preventDefault();
+                const d = {ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1}[e.key];
+                const n = this.model.sel + d;
+                if (n >= 0 && n < 81 && !(d === 1 && this.model.sel % 9 === 8) && !(d === -1 && this.model.sel % 9 === 0)) {
+                    this.selectCell(n);
+                }
+            }
+        });
+    }
+
+    startGame(clues) {
+        this.model.generate(clues);
+        this.view.switchScreen('game');
+        this.view.els.modal.classList.remove('on');
+        this.model.paused = false;
+        this.view.togglePause(false);
+        
+        this.startTimer();
+        
+        this.refresh();
+        this.view.speak(`Game started. Difficulty: ${clues} clues.`);
+    }
+
+    startTimer() {
+        clearInterval(this.timer);
+        this.timer = setInterval(() => {
+            if (!this.model.over && !this.model.paused) {
+                this.model.secs++;
+                this.view.els.time.textContent = Utils.fmtTime(this.model.secs);
+            }
+        }, 1000);
+    }
+
+    restartGame() {
+        if (!this.model.initialGrid.some(Boolean)) return;
+        this.model.grid = [...this.model.initialGrid];
+        this.model.given = this.model.initialGrid.map(value => value !== 0);
+        this.model.notes = Array.from({length: 81}, () => new Set());
+        this.model.history = [];
+        this.model.miss = 0;
+        this.model.hints = 3;
+        this.model.secs = 0;
+        this.model.over = false;
+        this.model.paused = false;
+        this.model.noteMode = false;
+        this.model.sel = -1;
+        this.view.els.modal.classList.remove('on');
+        this.view.togglePause(false);
+        this.startTimer();
+        this.refresh();
+        this.view.speak('Puzzle restarted.');
+    }
+
+    goHome() {
+        clearInterval(this.timer);
+        this.model.over = true;
+        this.view.updateStats(this.model.stats);
+        this.view.switchScreen('home');
+        this.view.els.modal.classList.remove('on');
+        this.view.togglePause(false);
+    }
+
+    togglePause() {
+        if (this.model.over) return;
+        this.model.paused = !this.model.paused;
+        this.view.togglePause(this.model.paused);
+        this.view.speak(this.model.paused ? "Game paused." : "Game resumed.");
+    }
+
+    selectCell(idx) {
+        this.model.sel = idx;
+        this.refresh();
+        
+        const r = Utils.rw(idx) + 1;
+        const c = Utils.cl(idx) + 1;
+        const val = this.model.grid[idx];
+        const status = val ? `Contains ${val}` : (this.model.notes[idx].size ? 'Has notes' : 'Empty cell');
+        this.view.speak(`Row ${r}, Column ${c}. ${status}`);
+    }
+
+    inputNumber(val) {
+        if (this.model.over || this.model.sel < 0) return;
+        if (this.model.given[this.model.sel]) {
+            this.view.showToast('Part of puzzle');
+            this.view.speak('Cannot change given number');
+            return;
+        }
+
+        this.model.snapshot();
+
+        if (this.model.noteMode && !this.model.grid[this.model.sel]) {
+            const ns = this.model.notes[this.model.sel];
+            ns.has(val) ? ns.delete(val) : ns.add(val);
+            this.view.speak(`Note ${val} ${ns.has(val) ? 'added' : 'removed'}`);
+        } else {
+            this.model.grid[this.model.sel] = val;
+            this.model.notes[this.model.sel].clear();
+            
+            // Clear related notes
+            for (let k = 0; k < 81; k++) {
+                if (Utils.peer(this.model.sel, k)) this.model.notes[k].delete(val);
+            }
+            
+            // Check mistake
+            if (val !== this.model.sol[this.model.sel]) {
+                this.model.miss++;
+                this.view.showToast("Doesn't fit");
+                this.view.speak(`Invalid move. Mistake recorded. ${this.model.miss} out of 3 mistakes.`);
+                
+                if (this.model.miss >= 3) {
+                    this.refresh();
+                    return this.endGame(false);
+                }
+            } else {
+                this.view.speak(`Selected ${val}. Correct.`);
+                
+                // Pop animation
+                setTimeout(() => {
+                    const el = this.view.els.board.children[this.model.sel];
+                    if (el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+                }, 10);
+            }
+        }
+        
+        this.refresh();
+        if (this.model.grid.every((x, i) => x === this.model.sol[i])) this.endGame(true);
+    }
+
+    erase() {
+        if (this.model.sel < 0 || this.model.given[this.model.sel] || this.model.over) return;
+        this.model.snapshot();
+        this.model.grid[this.model.sel] = 0;
+        this.model.notes[this.model.sel].clear();
+        this.refresh();
+        this.view.speak("Cell erased");
+    }
+
+    undo() {
+        const h = this.model.history.pop();
+        if (!h) {
+            this.view.showToast('Nothing to undo');
+            this.view.speak('Nothing to undo');
+            return;
+        }
+        this.model.grid = h.g;
+        this.model.notes = h.n;
+        this.refresh();
+        this.view.speak("Undo performed");
+    }
+
+    useHint() {
+        if (this.model.over || !this.model.hints) {
+            this.view.showToast('No hints left');
+            return;
+        }
+        
+        let t = (this.model.sel >= 0 && !this.model.given[this.model.sel] && this.model.grid[this.model.sel] !== this.model.sol[this.model.sel]) 
+                ? this.model.sel 
+                : this.model.grid.findIndex((v, i) => v !== this.model.sol[i]);
+                
+        if (t < 0) return;
+        
+        this.model.snapshot();
+        this.model.hints--;
+        this.model.grid[t] = this.model.sol[t];
+        this.model.given[t] = true;
+        this.model.sel = t;
+        
+        this.refresh();
+        this.view.speak(`Hint used. Placed ${this.model.grid[t]} at row ${Utils.rw(t)+1}, column ${Utils.cl(t)+1}`);
+        
+        if (this.model.grid.every((x, i) => x === this.model.sol[i])) this.endGame(true);
+    }
+
+    endGame(win) {
+        this.model.over = true;
+        if (win) {
+            this.model.stats.wins++;
+            if (!this.model.stats.best || this.model.secs < this.model.stats.best) {
+                this.model.stats.best = this.model.secs;
+            }
+            this.model.saveStats();
+            this.view.speak("Congratulations! Puzzle solved.");
+        } else {
+            this.view.speak("Game over. Three mistakes reached.");
+        }
+        this.view.showGameOver(win, Utils.fmtTime(this.model.secs), this.model.miss);
+    }
+
+    refresh() {
+        this.view.renderBoard(this.model, (i) => this.selectCell(i));
+        this.view.renderPad(this.model, (v) => this.inputNumber(v));
+        this.view.updateUI(this.model);
+    }
+    
+    drawMini() {
+        const p = '530070000600195000098000060800060003400803001700020006060000280000419005000080079';
+        const m = Utils.$('#mini');
+        [...p].forEach((ch, i) => {
+            const d = document.createElement('div');
+            if (ch !== '0') d.textContent = ch;
+            else { d.className = 'f'; d.style.animationDelay = (i % 9) * 0.18 + 's'; }
+            if (Utils.cl(i) % 3 === 2 && Utils.cl(i) < 8) d.classList.add('r3');
+            if (Utils.rw(i) % 3 === 2 && Utils.rw(i) < 8) d.classList.add('b3');
+            m.appendChild(d);
+        });
+    }
+}
+
+// ==========================================
+// INITIALIZATION
+// ==========================================
+const app = new SudokuController(new SudokuModel(), new SudokuView());
+
+</script>
+</body>
+</html>
